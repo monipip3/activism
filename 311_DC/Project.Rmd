@@ -1,0 +1,129 @@
+---
+title: "Project"
+author: "Monica Puerto"
+date: "3/10/2019"
+output: pdf_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction
+
+The number 311 is s
+Smith cited[@Smith2009]
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+#library(tidyverse)
+requests <- read_csv('City_Service_Requests_in_2018.csv')
+```
+
+
+
+
+## Data observations 
+
+There were 333,105 city requests made in DC across a population of X. (verify if you have to be a DC resident to do a 311 request)
+This dataset had 30 variables of information which of consisted of timestamps, numeric, and categorical such as service codes. 
+Of the 30 columns, there were 12 variables with NAs. The columns with the most NAs were about the Inspector Name and Inspection Date which were 100% and 92% comprised of NAs respectively. That would have been interesting to analyze if certain Inspectors were assigned to certain Wards, how many inspectors per Ward and the ratio of the population to inspectors in each Ward. 
+A column that I do care about is resolution date and I was alarmed when I saw about ~53K rows blank but that just comprises of 16% of the data; which is still a hefty chunk of the data but at least it was not over 1/2 of the data and just 1/6.
+
+The 
+
+```{r}
+summary(requests)
+```
+
+
+```{r}
+column_names = c(names(requests))
+
+requests %>%
+  summarize_all(funs(sum(is.na(.)))) %>%
+  gather(key=column_names,value="NA_COUNT") %>%
+  arrange(desc(NA_COUNT)) %>%
+  filter(NA_COUNT > 0) %>%
+  mutate(NA_PCT = round((NA_COUNT/nrow(requests)*100)))
+
+```
+
+
+```{r}
+ggplot(requests,aes(x=WARD)) +
+  geom_bar(fill='blue') +
+  xlab("Wards") + 
+  ylab("Requests Count") +
+  ggtitle("Counts of Requests by Ward")
+  
+```
+
+```{r}
+requests %>%
+  group_by(WARD,SERVICECODEDESCRIPTION) %>%
+  count() %>%
+  arrange(desc(n)) 
+```
+
+```{r}
+length(unique(requests$SERVICECODEDESCRIPTION))
+```
+
+```{r}
+length(unique(requests$SERVICECODE))
+```
+```{r}
+requests %>% 
+separate(SERVICETYPECODEDESCRIPTION,into=c('CODE','DESCODE'),sep='-') %>%
+  ggplot(aes(x=WARD)) +
+  geom_bar() +
+  facet_wrap(~CODE)
+```
+
+
+
+```{r}
+wards_demo <- read_csv('Ward_from_2012.csv')
+```
+```{r}
+col_names = c(names(wards_demo))
+
+wards_demo %>%
+  summarize_all(funs(sum(is.na(.)))) %>%
+  gather(key=column_names,value="NA_COUNT") %>%
+  arrange(desc(NA_COUNT)) %>%
+  filter(NA_COUNT > 0) %>%
+  mutate(NA_PCT = round((NA_COUNT/nrow(wards_demo)*100)))
+```
+```{r}
+requests %>%
+  transmute(resolve_time_days = round(difftime(RESOLUTIONDATE,ADDDATE,units = "days"))) -> requests$resolve_time_days
+```
+
+```{r}
+requests %>%
+  mutate(resolve_time_days = round(difftime(RESOLUTIONDATE,ADDDATE,units = "days"))) %>%
+  group_by(WARD,ORGANIZATIONACRONYM) %>%
+  summarise(average_resolve = round(mean(resolve_time_days,na.rm = TRUE))) %>%
+  arrange(desc(average_resolve)) %>%
+  ggplot(aes(WARD,average_resolve,color=WARD)) +
+  geom_boxplot() +
+  facet_wrap(~ORGANIZATIONACRONYM)
+```
+```{r}
+ggplot(requests,aes(x=WARD)) +
+  geom_bar(fill='blue') +
+  xlab("Wards") + 
+  ylab("Requests Count") +
+  ggtitle("Counts of Requests by Ward and Organization") +
+  facet_wrap(~ORGANIZATIONACRONYM)
+
+```
+
+```{r}
+requests %>% 
+separate(SERVICETYPECODEDESCRIPTION,into=c('CODE','DESCODE'),sep='-') %>%
+  ggplot(aes(x=ORGANIZATIONACRONYM,color=CODE,fill=CODE)) +
+  geom_bar() 
+```
+
